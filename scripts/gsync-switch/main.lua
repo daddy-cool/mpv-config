@@ -100,8 +100,6 @@ local function enableGsync()
 
     loadState()
     if state.gsync_active == false then
-        toggleGsync() -- three times to avoid signal loss on Denon AVR
-        toggleGsync()
         toggleGsync()
     end
 end
