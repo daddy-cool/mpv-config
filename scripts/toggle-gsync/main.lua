@@ -1,4 +1,4 @@
--- GSYNC SWITCH
+-- Toggle GSYNC
 --
 -- Auto-disable GSync on first file played, auto-reenable GSync on mpv shutdown
 --
@@ -8,16 +8,15 @@ msg = require 'mp.msg'
 require 'mp.options'
 utils = require 'mp.utils'
 
-local statePath = mp.command_native({"expand-path", "~~/script-opts" .. "/gsync-switch.json"})
-local exePath = mp.get_script_directory() .. "/gsync-switch.exe"
+local statePath = mp.command_native({"expand-path", "~~/script-opts" .. "/toggle-gsync.json"})
+local exePath = mp.get_script_directory() .. "/toggle-gsync.exe"
 
 local state = {
     gsync_active = true
 }
 
 local options = {
-    enabled = false,
-    pauseSeconds = 3
+    enabled = false
 }
 
 local function file_exists(name)
@@ -39,7 +38,7 @@ local function loadState()
     if newState then
         state = newState
     else
-        msg.error("Invalid JSON format in gsync-switch.json")
+        msg.error("Invalid JSON format in toggle-gsync.json")
     end
 end
 
@@ -62,15 +61,15 @@ local function toggleGsync()
     if process.status >= 0 then
         state.gsync_active = not state.gsync_active
         saveState()
-        -- msg.info("Switched GSYNC active state to " .. tostring(state.gsync_active))
+        -- msg.info("Toggled GSYNC active state to " .. tostring(state.gsync_active))
     else
         local error = process.error_string
-        msg.error('Error switching GSYNC active state')
+        msg.error('Error toggling GSYNC active state')
     end
 end
 
 local function isEnabled()
-    read_options(options, "gsync_switch")
+    read_options(options, "toggle_gsync")
     return options.enabled
 end
 
@@ -82,14 +81,7 @@ local function disableGsync()
     loadState()
     if state.gsync_active == true then
         toggleGsync()
-
-        if options.pauseSeconds > 0 and not mp.get_property_bool("pause") then
-            mp.set_property_bool("pause", true)
-            mp.add_timeout(options.pauseSeconds, function()
-                mp.set_property_bool("pause", false)
-                mp.commandv("seek", -1) -- workaround, somehow mpv gets stuck sometimes
-            end)
-        end
+        mp.commandv("seek", -5) -- workaround, somehow mpv gets stuck sometimes
     end
 end
 
