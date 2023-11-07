@@ -10,7 +10,8 @@ local options = {
   maxVideoFps = 60,
   maxVsyncRatio = 5,
   minDisplayFps = 119,
-  roundFps = false
+  roundFps = 0,
+  vfAppend = ""
 }
 
 local function isEnabled()
@@ -41,7 +42,7 @@ function sync_frames()
 
   local fps = containerFps
   fps = math.floor(1000*fps)/1000 -- round down to three decimals
-  if options.roundFps then
+  if options.roundFps == 1 then
     fps = math.floor(fps + 0.1) 
   end
 
@@ -58,7 +59,12 @@ function sync_frames()
     do return end
   end
 
-  mp.set_property("vf", "fps=fps=source_fps*" .. vsyncRatio)
+  local seperator = ""
+  if options.vfAppend ~= "" then
+    seperator = ","
+  end
+
+  mp.set_property("vf", "fps=fps=source_fps*" .. vsyncRatio .. seperator .. options.vfAppend)
 end
 
 mp.observe_property('container-fps', 'number', sync_frames)
