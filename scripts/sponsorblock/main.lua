@@ -92,11 +92,11 @@ end
 options.local_database = false
 
 local utils = require "mp.utils"
-scripts_dir = mp.find_config_file("scripts")
+scripts_dir = mp.get_script_directory()
 
-local sponsorblock = utils.join_path(scripts_dir, "sponsorblock_shared/sponsorblock.py")
-local uid_path = utils.join_path(scripts_dir, "sponsorblock_shared/sponsorblock.txt")
-local database_file = options.local_database and utils.join_path(scripts_dir, "sponsorblock_shared/sponsorblock.db") or ""
+local sponsorblock = utils.join_path(scripts_dir, "sponsorblock.py")
+local uid_path = utils.join_path(scripts_dir, "sponsorblock.txt")
+local database_file = options.local_database and utils.join_path(scripts_dir, "sponsorblock.db") or ""
 local youtube_id = nil
 local ranges = {}
 local init = false
