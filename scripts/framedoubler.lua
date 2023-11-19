@@ -26,7 +26,8 @@ function sync_frames()
 
   local containerFps = mp.get_property_number('container-fps')
   local displayFps = mp.get_property_number('display-fps')
-  if containerFps == nil or displayFps == nil then
+  local speed = mp.get_property_number('speed')
+  if containerFps == nil or displayFps == nil or speed == nil then
     do return end
   end
   
@@ -47,7 +48,7 @@ function sync_frames()
   end
 
   local vsyncRatio = 1
-  while (vsyncRatio+1)*fps <= displayFps do
+  while (vsyncRatio+1)*fps*speed <= displayFps do
     vsyncRatio = vsyncRatio + 1
   end
 
@@ -69,3 +70,4 @@ end
 
 mp.observe_property('container-fps', 'number', sync_frames)
 mp.observe_property('display-fps', 'number', sync_frames)
+mp.observe_property('speed', 'number', sync_frames)
