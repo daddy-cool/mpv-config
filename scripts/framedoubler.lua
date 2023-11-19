@@ -6,7 +6,7 @@
 local msg = require 'mp.msg'
 require 'mp.options'
 local options = {
-  enabled = false,
+  enabled = true,
   maxVideoFps = 60,
   maxVsyncRatio = 5,
   minDisplayFps = 119,
