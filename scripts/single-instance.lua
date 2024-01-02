@@ -14,6 +14,11 @@ local function isEnabled()
     return options.enabled
 end
 
+local function escapeForCmd(str)
+    return str:gsub("&", "^&"):gsub("%", "%%")
+end
+
+
 local function singleInstance()
     if startUp ~= true then
         do return end
@@ -25,6 +30,7 @@ local function singleInstance()
     end
 
     --msg.info(mp.get_property("path"))
+    msg.info("loadfile '" .. escapeForCmd(mp.get_property("path")) .. "' replace >\\\\.\\pipe\\tmp\\mpv-socket")
 
     local process = mp.command_native({
         name = 'subprocess',
@@ -32,7 +38,7 @@ local function singleInstance()
         args = {
             "cmd",
             "/k",
-            "echo loadfile '" .. mp.get_property("path") .. "' replace >\\\\.\\pipe\\tmp\\mpv-socket"
+            "echo loadfile '" .. escapeForCmd(mp.get_property("path")) .. "' replace >\\\\.\\pipe\\tmp\\mpv-socket"
         },
         capture_stderr = true
     })
