@@ -30,7 +30,7 @@ local function singleInstance()
     end
 
     --msg.info(mp.get_property("path"))
-    msg.info("loadfile '" .. escapeForCmd(mp.get_property("path")) .. "' replace >\\\\.\\pipe\\tmp\\mpv-socket")
+    --msg.info("loadfile '" .. escapeForCmd(mp.get_property("path")) .. "' replace >\\\\.\\pipe\\tmp\\mpv-socket")
 
     local process = mp.command_native({
         name = 'subprocess',
