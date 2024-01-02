@@ -15,7 +15,7 @@ local function isEnabled()
 end
 
 local function escapeForCmd(str)
-    return str:gsub("&", "^&"):gsub("%", "%%")
+    return str:gsub("&", "^&"):gsub("%%", "%%%%")
 end
 
 
