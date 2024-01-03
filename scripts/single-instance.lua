@@ -20,6 +20,11 @@ end
 
 
 local function singleInstance()
+    local path = mp.get_property("path")
+    if path == nil then
+        do return end
+    end
+    
     if startUp ~= true then
         do return end
     end
@@ -29,25 +34,24 @@ local function singleInstance()
         do return end
     end
 
-    --msg.info(mp.get_property("path"))
-    --msg.info("loadfile '" .. escapeForCmd(mp.get_property("path")) .. "' replace >\\\\.\\pipe\\tmp\\mpv-socket")
-
     local process = mp.command_native({
         name = 'subprocess',
         playback_only = false,
         args = {
             "cmd",
-            "/k",
-            "echo loadfile '" .. escapeForCmd(mp.get_property("path")) .. "' replace >\\\\.\\pipe\\tmp\\mpv-socket"
+            "/Q",
+            "/C",
+            "echo loadfile '" .. escapeForCmd(path) .. "' replace >\\\\.\\pipe\\tmp\\mpv-socket"
         },
         capture_stderr = true
     })
 
-    if process.stderr ~= "" then
-        --msg.info(process.stderr)
+    if process.stderr:find("The system cannot find the file specified.") then
+        msg.info("No previous MPV instance detected, starting playback")
         mp.set_property("input-ipc-server", options.socketName)
     else
-        msg.info("socket found")
+        msg.info("Previous MPV instance detected, quitting")
+        mp.set_property("save-position-on-quit", "no")
         mp.command("quit")
     end
 end
