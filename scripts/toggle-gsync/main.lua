@@ -52,7 +52,6 @@ end
 local function toggleGsync()
     local process = mp.command_native({
         name = 'subprocess',
-        playback_only = false,
         args = {
             exePath
         }
