@@ -65,6 +65,7 @@ function sync_frames()
     seperator = ","
   end
 
+  mp.set_property("msg-level", "ffmpeg=error")
   mp.set_property("vf", "fps=fps=source_fps*" .. vsyncRatio .. seperator .. options.vfAppend)
 end
 
