@@ -45,7 +45,7 @@ local function singleInstance()
         capture_stderr = true
     })
 
-    if process.stderr:find("The system cannot find the file specified.") then
+    if process.stderr:find("The system cannot find the file specified.") or process.stderr:find("Das System kann die angegebene Datei nicht finden.") then
         msg.info("No previous MPV instance detected, starting playback")
         mp.set_property("input-ipc-server", options.socketName)
     else
