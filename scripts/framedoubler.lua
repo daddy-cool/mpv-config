@@ -8,8 +8,8 @@ require 'mp.options'
 local options = {
   enabled = true,
   maxVideoFps = 60,
-  maxVsyncRatio = 5,
-  minDisplayFps = 119,
+  maxVsyncRatio = 20,
+  minDisplayFps = 71,
   roundFps = 0,
   vfAppend = ""
 }
