@@ -10,7 +10,8 @@ local options = {
   maxVideoFps = 60,
   maxVsyncRatio = 20,
   minDisplayFps = 71,
-  roundFps = 0,
+  roundDispayFps = true,
+  roundFps = false,
   vfAppend = ""
 }
 
@@ -41,9 +42,14 @@ function sync_frames()
     do return end
   end
 
+  displayFps = math.floor(1000*displayFps)/1000
+  if options.roundDispayFps then
+    displayFps = math.floor(displayFps + 0.5)
+  end
+
   local fps = containerFps
   fps = math.floor(1000*fps)/1000 -- round down to three decimals
-  if options.roundFps == 1 then
+  if options.roundFps then
     fps = math.floor(fps + 0.1) 
   end
 
