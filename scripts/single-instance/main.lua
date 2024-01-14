@@ -2,6 +2,8 @@ msg = require 'mp.msg'
 require 'mp.options'
 utils = require 'mp.utils'
 
+local batPath = mp.get_script_directory() .. "/send_keys.bat"
+
 local startUp = true
 
 local options = {
@@ -33,14 +35,14 @@ local function singleInstance()
     if isEnabled() == false then
         do return end
     end
-
+    
     local process = mp.command_native({
         name = 'subprocess',
         args = {
             "cmd",
             "/Q",
             "/C",
-            "echo loadfile '" .. escapeForCmd(path) .. "' replace >\\\\.\\pipe\\tmp\\mpv-socket"
+            "echo script-message-to " .. mp.get_script_name() .. " override-playback '" .. escapeForCmd(path) .. "' >\\\\.\\pipe\\tmp\\mpv-socket"
         },
         capture_stderr = true
     })
@@ -55,4 +57,18 @@ local function singleInstance()
     end
 end
 
+local function override_playback(path)
+    mp.command_native({
+        name = 'subprocess',
+        args = {
+            batPath,
+            mp.get_property("pid"),
+            ""
+        }
+    })
+    
+    mp.commandv("loadfile", path)
+end
+
 mp.register_event("start-file", singleInstance)
+mp.register_script_message("override-playback", override_playback)
