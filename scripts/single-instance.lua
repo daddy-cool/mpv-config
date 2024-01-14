@@ -2,6 +2,8 @@ msg = require 'mp.msg'
 require 'mp.options'
 utils = require 'mp.utils'
 
+local startUp = true
+
 local options = {
     enabled = true,
     socketName = "/tmp/mpv-socket"
@@ -33,6 +35,10 @@ local function isQuit()
 end
 
 local function quitOtherInstance()
+    if startUp == false then
+        do return end
+    end
+
     if isEnabled() == false then
         do return end
     end
@@ -55,6 +61,11 @@ local function quit()
 end
 
 local function verify(hook)
+    if startUp == false then
+        do return end
+    end
+    startUp = false
+
     if isEnabled() == false then
         do return end
     end
