@@ -12,20 +12,6 @@ local function isEnabled()
     return options.enabled
 end
 
-local function quit()
-    local process = mp.command_native({
-        name = 'subprocess',
-        playback_only = false,
-        args = {
-            "cmd",
-            "/Q",
-            "/C",
-            "echo quit-watch-later > \\\\.\\pipe\\tmp\\mpv-socket"
-        },
-        capture_stderr = true
-    })
-end
-
 local function isQuit()
     local process = mp.command_native({
         name = 'subprocess',
@@ -46,29 +32,55 @@ local function isQuit()
     end
 end
 
-local function singleInstance()
+local function quitOtherInstance()
     if isEnabled() == false then
         do return end
     end
 
-    quit()
+    mp.command_native({
+        name = 'subprocess',
+        playback_only = false,
+        args = {
+            "cmd",
+            "/Q",
+            "/C",
+            "echo quit-watch-later > \\\\.\\pipe\\tmp\\mpv-socket"
+        },
+        capture_stderr = true
+    })
+end
 
-    for tries = 0, 1000, 1 do
+local function quit()
+    mp.command("quit")
+end
+
+local function verify(hook)
+    if isEnabled() == false then
+        do return end
+    end
+
+    hook:defer()
+    local quitTimer
+
+    local function checkOtherInstance()
         if isQuit() == true then
             mp.set_property("input-ipc-server", options.socketName)
-            break
-        end
-
-        if tries >= 999 then
-            msg.error("previous mpv instance did not quit, quitting")
-            mp.command("quit")
-            break
-        else
-            if tries == 0 then
-                msg.info("waiting for previous mpv instance to quit")
+            hook:cont()
+            if quitTimer ~= nil then
+                quitTimer:kill()
             end
+            return true
+        else
+            mp.add_timeout(0.1, checkOtherInstance)
+            return false
         end
+    end
+
+    if checkOtherInstance() == false then
+        msg.info("waiting for previous mpv instance to quit")
+        quitTimer = mp.add_timeout(5, quit)
     end
 end
 
-mp.add_hook("on_load", 50, singleInstance)
+mp.add_hook("on_load", 50, quitOtherInstance)
+mp.add_hook("on_preloaded", 50, verify)
