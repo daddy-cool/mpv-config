@@ -20,9 +20,8 @@ local function escapeForCmd(str)
     return str:gsub("&", "^&"):gsub("%%", "%%%%")
 end
 
-
 local function singleInstance()
-    local path = mp.get_property("path")
+        local path = mp.get_property("path")
     if path == nil then
         do return end
     end
@@ -42,7 +41,7 @@ local function singleInstance()
             "cmd",
             "/Q",
             "/C",
-            "echo script-message-to " .. mp.get_script_name() .. " override-playback '" .. escapeForCmd(path) .. "' >\\\\.\\pipe\\tmp\\mpv-socket"
+            "echo script-message-to " .. mp.get_script_name() .. " override-playback '" .. escapeForCmd(path) .. "' > \\\\.\\pipe\\tmp\\mpv-socket"
         },
         capture_stderr = true
     })
@@ -58,15 +57,16 @@ local function singleInstance()
 end
 
 local function override_playback(path)
+    --local pid = mp.get_property("pid")
+    --local focus_title = "FOCUS-" .. pid
+    --mp.set_property("title", focus_title)
     mp.command_native({
         name = 'subprocess',
         args = {
             batPath,
-            mp.get_property("pid"),
-            ""
+            mp.get_property("pid")
         }
     })
-    
     mp.commandv("loadfile", path)
 end
 
