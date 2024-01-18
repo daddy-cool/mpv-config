@@ -1,55 +1,72 @@
 [
     {
-        "alang": ["deu?","ger"],
-        "slang": ["deu?","ger"],
-        "condition":"sub.forced and not sub.default"
+        "alang": [
+            "deu?",
+            "ger"
+        ],
+        "slang": [
+            "deu?",
+            "ger"
+        ],
+        "condition": "sub.forced and not sub.default"
     },
     {
         "inherit": "^",
-        "condition":"sub.forced"
+        "condition": "sub.forced"
     },
     {
-        "alang": ["deu?","ger"],
-        "slang":"no"
+        "alang": [
+            "deu?",
+            "ger"
+        ],
+        "slang": "no"
     },
     {
-        "alang":"eng?",
-        "slang":"eng?",
-        "condition":"not sub.forced and sub.default"
+        "alang": "eng?",
+        "slang": "eng?",
+        "condition": "not sub.forced and sub.default"
     },
     {
         "inherit": "^",
-        "condition":"not sub.forced"
+        "condition": "not sub.forced"
     },
     {
         "inherit": "^",
-        "condition":"sub.forced"
+        "condition": "sub.forced"
     },
     {
-        "alang":"eng?",
-        "slang":"no"
+        "alang": "eng?",
+        "slang": "no"
     },
     {
         "alang": "*",
-        "slang": ["eng?","und"],
-        "blacklist": ["sign", "song"],
-        "condition":"not sub.forced and sub.default"
+        "slang": [
+            "eng?",
+            "deu?",
+            "ger",
+            "und"
+        ],
+        "blacklist": [
+            "sign",
+            "song"
+        ],
+        "condition": "not sub.forced and sub.default"
     },
     {
         "inherit": "^",
-        "condition":"sub.forced and sub.default"
+        "condition": "sub.forced and sub.default"
     },
     {
         "inherit": "^",
-        "condition":"not sub.forced"
+        "condition": "not sub.forced"
     },
     {
         "alang": "*",
         "slang": "*",
-        "condition":"not sub.forced and sub.default"
+        "condition": "not sub.forced and sub.default"
     },
     {
         "inherit": "^",
-        "condition":"sub.forced and sub.default"
+        "condition": "sub.forced and sub.default"
     }
 ]
