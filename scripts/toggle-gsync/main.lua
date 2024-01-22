@@ -96,5 +96,11 @@ local function enableGsync()
     end
 end
 
+local function disable()
+    mp.unregister_event(enableGsync)
+end
+
+
 mp.register_event("start-file", disableGsync)
 mp.register_event("shutdown", enableGsync)
+mp.register_script_message("disable", disable)

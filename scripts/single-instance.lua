@@ -50,13 +50,14 @@ local function quitOtherInstance()
             "cmd",
             "/Q",
             "/C",
-            "echo quit-watch-later > \\\\.\\pipe\\tmp\\mpv-socket"
+            "echo script-message-to single_instance quit > \\\\.\\pipe\\tmp\\mpv-socket"
         },
         capture_stderr = true
     })
 end
 
 local function quit()
+    mp.command("script-message-to toggle_gsync disable")
     mp.command("quit")
 end
 
@@ -95,3 +96,4 @@ end
 
 mp.add_hook("on_load", 50, quitOtherInstance)
 mp.add_hook("on_preloaded", 50, verify)
+mp.register_script_message("quit", quit)
