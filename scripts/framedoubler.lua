@@ -20,8 +20,13 @@ local function isEnabled()
     return options.enabled
 end
 
+local function reset()
+  mp.set_property("vf", options.vfAppend) -- reset
+end
+
 function sync_frames()
   if isEnabled() == false then
+    reset()
     do return end
   end
 
@@ -29,16 +34,17 @@ function sync_frames()
   local displayFps = mp.get_property_number('display-fps')
   local speed = mp.get_property_number('speed')
   if containerFps == nil or displayFps == nil or speed == nil then
+    reset()
     do return end
   end
-  
-  mp.set_property("vf", "") -- reset
 
   if math.floor(containerFps) > options.maxVideoFps then -- disable for High Framerate content
+    reset()
     do return end
   end
 
   if options.minDisplayFps > displayFps then
+    reset()
     do return end
   end
 
@@ -63,6 +69,7 @@ function sync_frames()
   end
 
   if vsyncRatio == 1 then
+    reset()
     do return end
   end
 
