@@ -7,7 +7,8 @@ local msg = require 'mp.msg'
 require 'mp.options'
 local options = {
   enabled = true,
-  maxVideoFps = 60,
+  minVideoFps = 15,
+  maxVideoFps = 61,
   maxVsyncRatio = 20,
   minDisplayFps = 71,
   roundDispayFps = true,
@@ -38,7 +39,7 @@ function sync_frames()
     do return end
   end
 
-  if math.floor(containerFps) > options.maxVideoFps then -- disable for High Framerate content
+  if containerFps > options.maxVideoFps or containerFps < options.minVideoFps then -- disable for High Framerate content
     reset()
     do return end
   end
@@ -84,4 +85,5 @@ end
 
 mp.observe_property('container-fps', 'number', sync_frames)
 mp.observe_property('display-fps', 'number', sync_frames)
+mp.observe_property('speed', 'number', sync_frames)
 mp.observe_property('speed', 'number', sync_frames)
