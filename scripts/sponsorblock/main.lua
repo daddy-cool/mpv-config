@@ -285,7 +285,7 @@ function skip_ads(name, pos)
         if (options.fast_forward == uuid or not options.skip_once or not t.skipped) and t.start_time <= pos and t.end_time > pos then
             if options.fast_forward == uuid then return end
             if options.fast_forward == false then
-                mp.osd_message("[sponsorblock] " .. t.category .. " skipped")
+                --mp.osd_message("[sponsorblock] " .. t.category .. " skipped")
                 mp.command("seek " .. t.end_time .. " absolute+exact")
             else
                 mp.osd_message("[sponsorblock] skipping " .. t.category)
