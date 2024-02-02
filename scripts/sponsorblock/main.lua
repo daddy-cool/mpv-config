@@ -14,10 +14,10 @@ local options = {
     categories = "sponsor,selfpromo,interaction,intro,outro,preview,music_offtopic,filler",
 
     -- Categories to skip automatically
-    skip_categories = "sponsor,selfpromo,interaction",
+    skip_categories = "sponsor,selfpromo,interaction,filler",
 
     -- If true, sponsored segments will only be skipped once
-    skip_once = true,
+    skip_once = false,
 
     -- Note that sponsored segments may ocasionally be inaccurate if this is turned off
     -- see https://blog.ajay.app/voting-and-pseudo-randomness-or-sponsorblock-or-youtube-sponsorship-segment-blocker
@@ -28,7 +28,7 @@ local options = {
 
     -- How long to wait between local database updates
     -- Format: "X[d,h,m]", leave blank to update on every mpv run
-    auto_update_interval = "6h",
+    auto_update_interval = "",
 
     -- User ID used to submit sponsored segments, leave blank for random
     user_id = "",
@@ -286,7 +286,7 @@ function skip_ads(name, pos)
             if options.fast_forward == uuid then return end
             if options.fast_forward == false then
                 mp.osd_message("[sponsorblock] " .. t.category .. " skipped")
-                mp.set_property("time-pos", t.end_time)
+                mp.command("seek " .. t.end_time .. " absolute+exact")
             else
                 mp.osd_message("[sponsorblock] skipping " .. t.category)
             end
