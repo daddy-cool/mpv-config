@@ -828,6 +828,7 @@ local function update_property(name, value)
 end
 
 local function update_property_dirty(name, value)
+    mp.options.read_options(options, "thumbfast")
     properties[name] = value
     dirty = true
     if name == "tone-mapping" then
