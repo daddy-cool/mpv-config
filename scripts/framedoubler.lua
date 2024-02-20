@@ -86,4 +86,3 @@ end
 mp.observe_property('container-fps', 'number', sync_frames)
 mp.observe_property('display-fps', 'number', sync_frames)
 mp.observe_property('speed', 'number', sync_frames)
-mp.observe_property('speed', 'number', sync_frames)

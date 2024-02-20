@@ -39,7 +39,6 @@ local function disableGsync()
 
     if process.status >= 0 then
         state.wasDisabled = true
-        mp.commandv("seek", -5) -- workaround, somehow mpv gets stuck sometimes
     else
         --local error = process.error_string
         msg.error('Error disabling GSYNC')
