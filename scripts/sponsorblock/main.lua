@@ -17,7 +17,7 @@ local options = {
     skip_categories = "sponsor,selfpromo,interaction,filler",
 
     -- If true, sponsored segments will only be skipped once
-    skip_once = false,
+    skip_once = true,
 
     -- Note that sponsored segments may ocasionally be inaccurate if this is turned off
     -- see https://blog.ajay.app/voting-and-pseudo-randomness-or-sponsorblock-or-youtube-sponsorship-segment-blocker
