@@ -41,7 +41,28 @@
     {
         "alang": "*",
         "slang": [
-            "eng?",
+            "eng?"
+        ],
+        "blacklist": [
+            "sign",
+            "song"
+        ],
+        "condition": "not sub.forced and sub.default"
+    },
+    {
+        "alang": "*",
+        "slang": [
+            "eng?"
+        ],
+        "blacklist": [
+            "sign",
+            "song"
+        ],
+        "condition": "not sub.forced"
+    },
+    {
+        "alang": "*",
+        "slang": [
             "deu?",
             "ger",
             "und"

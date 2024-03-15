@@ -69,6 +69,9 @@ end
 
 local function disable()
     mp.unregister_event(enableGsync)
+    mp.unregister_event(disableGsync)
+    mp.unregister_event(verifyGsync)
+    mp.unregister_event(disable)
 end
 
 local function verifyGsync()

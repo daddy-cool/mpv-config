@@ -57,7 +57,7 @@ local function quitOtherInstance()
 end
 
 local function quit()
-    mp.command("script-message-to toggle_gsync disable")
+    mp.command("script-message disable")
     mp.command("quit")
 end
 
