@@ -82,7 +82,14 @@ local function verifyGsync()
     end
 end
 
+-- disable Gsync on first file played
 mp.register_event("start-file", disableGsync)
+
+-- enable Gsync on mpv shutdown
 mp.register_event("shutdown", enableGsync)
+
+--disables this script
 mp.register_script_message("disable", disable)
+
+-- adjust gsync state when script-opts changes
 mp.observe_property("script-opts", "string", verifyGsync)

@@ -117,7 +117,8 @@ local var = {
 
     beenReverted = true,
     rateList = {},
-    rates = {}
+    rates = {},
+    should_change = false
 }
 
 --is run whenever a change in script-opts is detected
@@ -135,7 +136,7 @@ function updateOptions(changes)
 
     --allow the auto option to be changed at runtime using profiles
     if changes and changes.auto and options.auto then
-        mp.add_timeout(1.5, matchVideo)
+        enableChange()
     end
 end
 read_options(options, 'changerefresh', updateOptions)
@@ -236,20 +237,6 @@ function changeRefresh(width, height, rate, display)
 
     msg.info("changing display " .. display .. " to " .. width .. "x" .. height .. " " .. rate .. "Hz")
 
-    --pauses the video while the change occurs to avoid A/V desyncs
-    if
-        options.pause > 0 and not mp.get_property_bool("pause")
-        and not (   tostring(var.current_height) == height and
-                    tostring(var.current_width) == width and
-                    tostring(math.floor(mp.get_property_number('display-fps'))) == rate
-                )
-    then
-        mp.set_property_bool("pause", true)
-        mp.add_timeout(options.pause, function()
-            mp.set_property_bool("pause", false)
-        end)
-    end
-
     local process = mp.command_native({
         name = 'subprocess',
         playback_only = false,
@@ -311,7 +298,7 @@ function getDisplayDetails()
     --there is no way to test which display this is, so reverting the refresh when mpv is on multiple monitors is unpredictable
     --however, by default I'm just selecting whatever the first monitor in the list is
     if #name > 1 then
-        msg.warn('mpv window is on multiplem displays, script may revert to wrong display rate')
+        msg.warn('mpv window is on multiple displays, script may revert to wrong display rate')
     end
 
     name = name[1]
@@ -456,18 +443,6 @@ function revertRefresh()
     end
 end
 
---sets the current resolution and refresh as the default to use upon reversion
-function setDefault()
-    var.original_width, var.original_height = getDisplayResolution()
-    var.original_fps = math.floor(mp.get_property_number('display-fps'))
-
-    var.beenReverted = true
-
-    --logging change to OSD & the console
-    msg.info('set ' .. var.original_width .. "x" .. var.original_height .. " " .. var.original_fps .. "Hz as defaut display rate")
-    osdMessage('Change-Refresh: set ' .. var.original_width .. "x" .. var.original_height .. " " .. var.original_fps .. "Hz as defaut display rate")
-end
-
 --toggles between using estimated and specified fps
 function toggleFpsType()
     if options.estimated_fps then
@@ -483,11 +458,30 @@ function toggleFpsType()
 end
 
 --runs the script automatically on startup if option is enabled
-function autoChange()
+function enableChange()
     if options.auto then
-        --waits until some of the required properties have been loaded before running
         msg.verbose('automatically changing refresh')
-        mp.add_timeout(0.5, matchVideo)
+        --pauses the video while the change occurs to avoid A/V desyncs
+         if 
+            options.pause > 0 and not mp.get_property_bool("pause")
+            and not (   tostring(var.current_height) == height and
+                        tostring(var.current_width) == width and
+                        tostring(math.floor(mp.get_property_number('display-fps'))) == rate
+                    )
+        then
+            mp.set_property_bool("pause", true)
+            mp.add_timeout(options.pause, function()
+                mp.set_property_bool("pause", false)
+            end)
+        end
+        var.should_change = true
+    end
+end
+
+function doChange()
+    if var.should_change then
+        matchVideo()
+        var.should_change = false
     end
 end
 
@@ -510,7 +504,6 @@ local function disable()
     mp.unregister_event(matchVideo)
     mp.unregister_event(revertRefresh)
     mp.unregister_event(toggleFpsType)
-    mp.unregister_event(setDefault)
     mp.unregister_event(scriptMessage)
     mp.unregister_event(autoChange)
     mp.unregister_event(revertRefresh)
@@ -520,25 +513,25 @@ end
 updateOptions()
 
 --tries to change current display to match video fps (the main function you'd want to use)
-mp.add_key_binding("f10", "match-refresh", matchVideo)
+mp.add_key_binding("", "match-refresh", matchVideo)
 
 --reverts monitor to original refreshrate
-mp.add_key_binding("Ctrl+f10", "revert-refresh", revertRefresh)
+mp.add_key_binding("", "revert-refresh", revertRefresh)
 
 --switches between using estimated and specified fps property
 mp.add_key_binding("", 'toggle-fps-type', toggleFpsType)
-
---set the current resolution and refresh rate as the default
-mp.add_key_binding("", "set-default-refresh", setDefault)
 
 --sends a command to switch to the specified display rate
 --syntax is: script-message change-refresh [width] [height] [rate] [display]
 mp.register_script_message("change-refresh", scriptMessage)
 
---runs the script automatically on startup if option is enabled
-mp.register_event('file-loaded', autoChange)
+--check on startup if the script should be enabled
+mp.register_event('start-file', enableChange)
+--runs the script automatically on playback if enabled
+mp.register_event('playback-restart', doChange)
 
 --reverts refresh on mpv shutdown
 mp.register_event("shutdown", revertRefresh)
 
+--disables this script
 mp.register_script_message("disable", disable)
