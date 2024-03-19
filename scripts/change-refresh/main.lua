@@ -426,20 +426,21 @@ end
 
 --reverts the monitor to its original refresh rate
 function revertRefresh()
-    if (var.beenReverted == false) then
-        msg.verbose("reverting refresh rate")
-
-        local rate
-        if options.original_rate == 0 then
+    if options.original_rate == 0 then
+        if (var.beenReverted == false) then
+            msg.verbose("reverting refresh rate")
+            local rate
             rate = findValidRate(var.original_fps)
+            changeRefresh(var.original_width, var.original_height, rate, var.dnumber)
+            var.beenReverted = true
         else
-            rate = options.original_rate
+            msg.verbose("aborting reversion, display has not been changed")
+            osdMessage('[change-refresh] display has not been changed')
         end
-        changeRefresh(var.original_width, var.original_height, rate, var.dnumber)
-        var.beenReverted = true
     else
-        msg.verbose("aborting reversion, display has not been changed")
-        osdMessage('[change-refresh] display has not been changed')
+        msg.verbose("reverting refresh rate")
+        changeRefresh(var.original_width, var.original_height, options.original_rate, var.dnumber)
+        var.beenReverted = true
     end
 end
 
