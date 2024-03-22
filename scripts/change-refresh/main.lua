@@ -74,7 +74,10 @@ local options = {
     original_rate = 0,
 
     --set whether to output status messages to the osd
-    osd_output = true
+    osd_output = true,
+
+    -- by how much to rewind playback to accomodate delays in changing the refresh rate
+    rewind_secs = 5
 }
 
 local var = {
@@ -214,8 +217,6 @@ function changeRefresh(rate, display)
         end
     end
 
-    mp.command("seek -5 relative+exact")
-
     osdMessage("changing display " .. var.dnumber .. " to " .. rate .. "Hz")
 end
 
@@ -315,8 +316,15 @@ function matchVideo()
     --saves the current name and number for next time
     var.dname = dname
     var.dnumber = dnumber
-
+    
+    local old_rate = mp.get_property('display-fps')
     changeRefresh(var.new_fps, dnumber)
+    if old_rate ~= nil then
+        if  math.floor(old_rate) ~= math.floor(var.new_fps) then
+            mp.command("seek -" .. options.rewind_secs .. " relative+exact")
+        end
+    end
+
     var.beenReverted = false
 end
 
