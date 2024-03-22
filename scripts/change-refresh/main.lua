@@ -214,6 +214,8 @@ function changeRefresh(rate, display)
         end
     end
 
+    mp.command("seek -5 relative+exact")
+
     osdMessage("changing display " .. var.dnumber .. " to " .. rate .. "Hz")
 end
 
