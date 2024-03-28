@@ -330,6 +330,10 @@ end
 
 --reverts the monitor to its original refresh rate
 function revertRefresh()
+    if options.auto == false then
+        do return end
+    end
+
     if options.original_rate == 0 then
         if (var.beenReverted == false) then
             msg.verbose("reverting refresh rate")
@@ -403,15 +407,6 @@ local function disable()
 end
 
 updateOptions()
-
---tries to change current display to match video fps (the main function you'd want to use)
-mp.add_key_binding("", "match-refresh", matchVideo)
-
---reverts monitor to original refreshrate
-mp.add_key_binding("", "revert-refresh", revertRefresh)
-
---switches between using estimated and specified fps property
-mp.add_key_binding("", 'toggle-fps-type', toggleFpsType)
 
 --sends a command to switch to the specified display rate
 --syntax is: script-message change-refresh [rate] [display]

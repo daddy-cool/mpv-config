@@ -2,7 +2,7 @@
 //!TYPE float
 //!MINIMUM 0
 //!MAXIMUM 1
-0.15
+0.1
 
 //!HOOK SCALED
 //!BIND HOOKED
