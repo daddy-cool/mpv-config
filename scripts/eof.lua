@@ -17,7 +17,7 @@ local function on_unload()
     end
 
     local percent_pos = mp.get_property_number("percent-pos")
-    if percent_pos < 95 then
+    if percent_pos ~= nil and percent_pos < 95 then
         do return end
     end
 
