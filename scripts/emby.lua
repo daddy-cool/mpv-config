@@ -18,8 +18,6 @@ local function emby()
     do return end
   end
 
-  --msg.info("stream-open-filename: " .. mp.get_property("stream-open-filename"))
-
   local path = mp.get_property("path")
 
   local item_id_raw = string.sub(path, string.find(path, "/emby/%a+/%d+"))
