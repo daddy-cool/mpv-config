@@ -53,6 +53,10 @@ local options = {
     --nircmd only seems to work with integers, DO NOT use the full refresh rate, i.e. 23.976
     rates = "23;24;25;29;30;50;59;60",
 
+    -- list all possible resolutions here, split up into width and height
+    valid_resolutions_w = "",
+    valid_resolutions_h = "",
+
     --change refresh automatically on startup
     auto = false,
 
@@ -64,9 +68,9 @@ local options = {
     --see https://mpv.io/manual/master/#command-interface-container-fps for details
     estimated_fps = false,
 
-    --default width and height to use when changing & reverting the refresh rate
-    width = 3840,
-    height = 2160,
+    --default width and height to use when reverting the refresh rate
+    original_width = 3840,
+    original_height = 2160,
 
     --if this value is set to anything but zero to script will always to to revert to this rate
     --this rate bypasses the usual rates whitelist, so make sure it is valid
@@ -186,13 +190,35 @@ function osdMessage(string)
 end
 
 --calls nircmd to change the display rate
-function changeRefresh(rate, display)
+function changeRefresh(rate, display, revert)
     rate = tostring(rate)
     display = tostring(display)
 
     msg.verbose('calling nircmd with command: ' .. options.nircmd .. " setdisplay monitor:" .. display .. " " .. options.bdepth .. " " .. rate)
 
     msg.info("changing display " .. display .. " to " .. rate .. "Hz")
+    
+    width = options.original_width
+    height = options.original_height
+
+    if revert ~= true then
+        index_start,index_end = options.valid_resolutions_w:find(mp.get_property("width"))
+        if index_start ~= nil then
+            width = options.valid_resolutions_w:sub(index_start,index_end)
+            height = options.valid_resolutions_h:sub(index_start,index_end)
+        else
+            index_start,index_end = options.valid_resolutions_h:find(mp.get_property("height"))
+            if index_start ~= nil then
+                width = options.valid_resolutions_w:sub(index_start,index_end)
+                height = options.valid_resolutions_h:sub(index_start,index_end)
+            end
+        end
+
+        if options.valid_resolutions_w:find(mp.get_property("width")) ~= nil or options.valid_resolutions_h:find(height) ~= nil then
+            width = mp.get_property("width")
+            height = mp.get_property("height")
+        end
+    end
 
     local process = mp.command_native({
         name = 'subprocess',
@@ -201,8 +227,8 @@ function changeRefresh(rate, display)
             options.nircmd,
             "setdisplay",
             "monitor:" .. display,
-            tostring(options.width),
-            tostring(options.height),
+            tostring(width),
+            tostring(height),
             options.bdepth,
             rate
         }
@@ -318,7 +344,7 @@ function matchVideo()
     var.dnumber = dnumber
     
     local old_rate = mp.get_property('display-fps')
-    changeRefresh(var.new_fps, dnumber)
+    changeRefresh(var.new_fps, dnumber, false)
     if old_rate ~= nil then
         if  math.floor(old_rate) ~= math.floor(var.new_fps) then
             mp.command("seek -" .. options.rewind_secs .. " relative+exact")
@@ -339,7 +365,7 @@ function revertRefresh()
             msg.verbose("reverting refresh rate")
             local rate
             rate = findValidRate(var.original_fps)
-            changeRefresh(rate, var.dnumber)
+            changeRefresh(rate, var.dnumber, true)
             var.beenReverted = true
         else
             msg.verbose("aborting reversion, display has not been changed")
@@ -347,7 +373,7 @@ function revertRefresh()
         end
     else
         msg.verbose("reverting refresh rate")
-        changeRefresh(options.original_rate, var.dnumber)
+        changeRefresh(options.original_rate, var.dnumber, true)
         var.beenReverted = true
     end
 end
@@ -393,7 +419,7 @@ function scriptMessage(rate, display)
     end
 
     msg.verbose('recieved script message: ' .. rate .. ' ' .. display)
-    changeRefresh(rate, display)
+    changeRefresh(rate, display, false)
 end
 
 local function disable()
