@@ -49,7 +49,7 @@ local options = {
     make_chapters = true,
 
     -- Minimum duration for sponsors (in seconds), segments under that threshold will be ignored
-    min_duration = 1,
+    min_duration = 10,
 
     -- Fade audio for smoother transitions
     audio_fade = false,
