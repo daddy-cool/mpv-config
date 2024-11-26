@@ -1,6 +1,6 @@
--- Toggle GSYNC
+-- Toggle HDR
 --
--- Auto-disable GSync on first file played, auto-reenable GSync on mpv shutdown
+-- Apply HDR state on every file played, auto-restore HDR state on mpv shutdown
 --
 
 
@@ -18,50 +18,6 @@ local options = {
 local function get_options()
     read_options(options, "toggle_hdr")
     return options
-end
-
-local function disableGsync()
-    if isEnabled() == false or state.wasDisabled == true then
-        do return end
-    end
-
-    local process = mp.command_native({
-        name = 'subprocess',
-        playback_only = false,
-        args = {
-            exePath,
-            "disable-gsync"
-        }
-    })
-
-    if process.status >= 0 then
-        state.wasDisabled = true
-    else
-        --local error = process.error_string
-        msg.error('Error disabling GSYNC')
-    end
-end
-
-local function enableGsync()
-    if isEnabled() == false or state.wasDisabled == false then
-        do return end
-    end
-
-    local process = mp.command_native({
-        name = 'subprocess',
-        playback_only = false,
-        args = {
-            exePath,
-            "enable-gsync"
-        }
-    })
-
-    if process.status >= 0 then
-        state.wasDisabled = false
-    else
-        --local error = process.error_string
-        msg.error('Error enabling GSYNC')
-    end
 end
 
 local function set_hdr(enabled)
@@ -130,6 +86,12 @@ local function disable()
     mp.unregister_event(disable)
 end
 
+local function end_file(bind)
+    if bind == "bind1" then
+        restore_hdr()
+    end
+end
+
 -- set HDR on every file played
 mp.register_event("start-file", apply_hdr)
 
@@ -139,5 +101,8 @@ mp.register_event("shutdown", restore_hdr)
 --disables this script
 mp.register_script_message("disable", disable)
 
--- adjust gsync state when script-opts changes
+-- adjust hdr state when script-opts changes
 mp.observe_property("script-opts", "string", apply_hdr)
+
+-- restore HDR on jellyfin-mpv-shim keybind
+mp.register_script_message("custom-bind", end_file)

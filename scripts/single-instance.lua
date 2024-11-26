@@ -11,6 +11,11 @@ local options = {
 
 local function isEnabled()
     read_options(options, "single_instance")
+
+    if mp.get_property("input-ipc-server") ~= "" and mp.get_property("input-ipc-server") ~= options.socketName then
+        do return false end
+    end
+
     return options.enabled
 end
 
