@@ -27,8 +27,11 @@ end
 
 function sync_frames()
   if isEnabled() == false then
-    reset()
     do return end
+  end
+
+  if options.vfAppend == "" then
+    options.vfAppend = mp.get_property("vf")
   end
 
   local containerFps = mp.get_property_number('container-fps')

@@ -432,6 +432,12 @@ local function disable()
     mp.unregister_event(disable)
 end
 
+local function end_file(bind)
+    if bind == "bind1" then
+        revertRefresh()
+    end
+end
+
 updateOptions()
 
 --sends a command to switch to the specified display rate
@@ -448,3 +454,6 @@ mp.register_event("shutdown", revertRefresh)
 
 --disables this script
 mp.register_script_message("disable", disable)
+
+-- restore refresh rate on jellyfin-mpv-shim keybind
+mp.register_script_message("custom-bind", end_file)
