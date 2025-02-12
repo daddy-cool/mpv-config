@@ -90,13 +90,10 @@ local var = {
     dnumber = "",
 
     --saved as numbers
-    original_fps = 0,
     new_fps = 0,
 
-    beenReverted = true,
     rateList = {},
     rates = {},
-    should_change = false
 }
 
 --is run whenever a change in script-opts is detected
@@ -110,11 +107,6 @@ function updateOptions(changes)
 
         checkRatesString()
         updateTable()
-    end
-
-    --allow the auto option to be changed at runtime using profiles
-    if changes and changes.auto and options.auto then
-        enableChange()
     end
 end
 read_options(options, 'changerefresh', updateOptions)
@@ -190,9 +182,12 @@ function osdMessage(string)
 end
 
 --calls nircmd to change the display rate
-function changeRefresh(rate, display, revert)
+function changeRefresh(rate, display)
     rate = tostring(rate)
     display = tostring(display)
+    if display == "" then
+        do return end
+    end
 
     msg.verbose('calling nircmd with command: ' .. options.nircmd .. " setdisplay monitor:" .. display .. " " .. options.bdepth .. " " .. rate)
 
@@ -200,25 +195,6 @@ function changeRefresh(rate, display, revert)
     
     width = options.original_width
     height = options.original_height
-
-    if revert ~= true then
-        index_start,index_end = options.valid_resolutions_w:find(mp.get_property("width"))
-        if index_start ~= nil then
-            width = options.valid_resolutions_w:sub(index_start,index_end)
-            height = options.valid_resolutions_h:sub(index_start,index_end)
-        else
-            index_start,index_end = options.valid_resolutions_h:find(mp.get_property("height"))
-            if index_start ~= nil then
-                width = options.valid_resolutions_w:sub(index_start,index_end)
-                height = options.valid_resolutions_h:sub(index_start,index_end)
-            end
-        end
-
-        if options.valid_resolutions_w:find(mp.get_property("width")) ~= nil or options.valid_resolutions_h:find(height) ~= nil then
-            width = mp.get_property("width")
-            height = mp.get_property("height")
-        end
-    end
 
     local process = mp.command_native({
         name = 'subprocess',
@@ -252,6 +228,9 @@ end
 --the names are in the form \\.\DISPLAY# starting from 1, while the integers start from 0
 function getDisplayDetails()
     local name = mp.get_property_native('display-names')
+    if name == nil then
+        do return "", "0" end
+    end
 
     --the display-fps property always refers to the display with the lowest refresh rate
     --there is no way to test which display this is, so reverting the refresh when mpv is on multiple monitors is unpredictable
@@ -309,49 +288,58 @@ function findValidRate(rate)
 end
 
 --executes commands to switch monior to video refreshrate
-function matchVideo()
+function matchVideo()    
+    if options.auto == false then
+        do return end
+    end
+    
+    local old_rate = mp.get_property('display-fps')
+    if old_rate == nil then
+        do return end
+    end
+
     --gets display details
     local dname, dnumber = getDisplayDetails()
 
+    if dname == "" then
+        do return end
+    end
+
     --if the change is executed on a different monitor to the previous, and the previous monitor has not been been reverted
     --then revert the previous changes before changing the new monitor
-    if ((var.beenReverted == false) and (var.dname ~= dname)) then
+    if var.dname ~= dname then
         msg.verbose('changing new display, reverting old one first')
         revertRefresh()
     end
-
-    --saves either the estimated or specified fps of the video
-    if (options.estimated_fps == true) then
-        var.new_fps = mp.get_property_number('estimated-vf-fps', 0)
-    else
-        var.new_fps = mp.get_property_number('container-fps', 0)
-    end
     
-    --Floor is used because 23fps video has an actual framerate of ~23.9, this occurs across many video rates
-    var.new_fps = math.floor(var.new_fps)
-
-    --picks which whitelisted rate to switch the monitor to based on the video rate
-    var.new_fps = findValidRate(var.new_fps)
-
-    --if beenReverted=true, then the current display settings may not be saved
-    if (var.beenReverted == true) then
-        var.original_fps = math.floor(mp.get_property_number('display-fps'))
-        msg.verbose('saving original fps: ' .. var.original_fps)
-    end
-
     --saves the current name and number for next time
     var.dname = dname
     var.dnumber = dnumber
-    
-    local old_rate = mp.get_property('display-fps')
-    changeRefresh(var.new_fps, dnumber, false)
-    if old_rate ~= nil then
-        if  math.floor(old_rate) ~= math.floor(var.new_fps) then
-            mp.command("seek -" .. options.rewind_secs .. " relative+exact")
-        end
+
+    local new_fps = nil
+
+    --saves either the estimated or specified fps of the video
+    if (options.estimated_fps == true) then
+        new_fps = mp.get_property_number('estimated-vf-fps', 0)
+    else
+        new_fps = mp.get_property_number('container-fps', 0)
     end
 
-    var.beenReverted = false
+    if new_fps == nil or new_fps < 23 then
+        do return end
+    end
+    
+    --Floor is used because 23fps video has an actual framerate of ~23.9, this occurs across many video rates
+    new_fps = math.floor(new_fps)
+
+    --picks which whitelisted rate to switch the monitor to based on the video rate
+    new_fps = findValidRate(new_fps)
+
+    
+    if  math.floor(old_rate) ~= math.floor(new_fps) then
+        changeRefresh(new_fps, dnumber)
+        mp.command("seek -" .. options.rewind_secs .. " relative+exact")
+    end
 end
 
 --reverts the monitor to its original refresh rate
@@ -360,21 +348,9 @@ function revertRefresh()
         do return end
     end
 
-    if options.original_rate == 0 then
-        if (var.beenReverted == false) then
-            msg.verbose("reverting refresh rate")
-            local rate
-            rate = findValidRate(var.original_fps)
-            changeRefresh(rate, var.dnumber, true)
-            var.beenReverted = true
-        else
-            msg.verbose("aborting reversion, display has not been changed")
-            osdMessage('[change-refresh] display has not been changed')
-        end
-    else
+    if options.original_rate ~= 0 then
         msg.verbose("reverting refresh rate")
-        changeRefresh(options.original_rate, var.dnumber, true)
-        var.beenReverted = true
+        changeRefresh(options.original_rate, var.dnumber)
     end
 end
 
@@ -392,21 +368,6 @@ function toggleFpsType()
     return
 end
 
---runs the script automatically on startup if option is enabled
-function enableChange()
-    if options.auto then
-        msg.verbose('automatically changing refresh')
-        var.should_change = true
-    end
-end
-
-function doChange()
-    if var.should_change then
-        matchVideo()
-        var.should_change = false
-    end
-end
-
 function scriptMessage(rate, display)
     local name
     if display == nil then
@@ -419,7 +380,7 @@ function scriptMessage(rate, display)
     end
 
     msg.verbose('recieved script message: ' .. rate .. ' ' .. display)
-    changeRefresh(rate, display, false)
+    changeRefresh(rate, display)
 end
 
 local function disable()
@@ -444,10 +405,7 @@ updateOptions()
 --syntax is: script-message change-refresh [rate] [display]
 mp.register_script_message("change-refresh", scriptMessage)
 
---check on startup if the script should be enabled
-mp.register_event('start-file', enableChange)
---runs the script automatically on playback if enabled
-mp.register_event('playback-restart', doChange)
+mp.add_periodic_timer(1, matchVideo)
 
 --reverts refresh on mpv shutdown
 mp.register_event("shutdown", revertRefresh)
@@ -457,3 +415,6 @@ mp.register_script_message("disable", disable)
 
 -- restore refresh rate on jellyfin-mpv-shim keybind
 mp.register_script_message("custom-bind", end_file)
+
+-- -- adjust options
+-- mp.observe_property("script-opts", "string", read_options)

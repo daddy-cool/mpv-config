@@ -9,12 +9,10 @@ require 'mp.options'
 utils = require 'mp.utils'
 
 local hdr_cmd = mp.get_script_directory() .. "/HDRCmd.exe"
-local media_info = mp.get_script_directory() .. "/Mediainfo.exe"
 
 local options = {
     enabled = true,
     hdr_enabled_original = false,
-    use_media_info = false,
     rewind_secs = 5
 }
 
@@ -36,13 +34,13 @@ local function set_hdr(enabled)
 
     if process.status < 0 then
         msg.error('Error reading HDR status')
-        do return end
+        return false
     end
 
-    local hdr_enabled = process.stdout:match("HDR is on")
+    local hdr_enabled = process.stdout:match("HDR is on") ~= nil
 
     if hdr_enabled == enabled then
-        do return end
+        return false
     end
 
     local command = enabled and "on" or "off"
@@ -55,28 +53,8 @@ local function set_hdr(enabled)
             command
         }
     })
-end
 
-local function get_info()
-    local path = mp.get_property("path")
-
-    local process = mp.command_native({
-        name = 'subprocess',
-        playback_only = false,
-        args = {
-            media_info,
-            "--inform=Video;%colour_primaries%%HDR_Format%",
-            path
-        },
-        capture_stdout = true
-    })
-
-    if process.status < 0 then
-        msg.error('Error reading media info')
-        do return end
-    end
-
-    return process.stdout:gsub("%s+", "")
+    return true
 end
 
 local function apply_hdr()
@@ -85,29 +63,22 @@ local function apply_hdr()
         do return end
     end
 
-    if options.use_media_info then
-        local info = get_info()
-        msg.warn(info)
+    local applied_hdr = false
 
-        if info:match("BT.2020") or info:match("DolbyVision") then
-            set_hdr(true)
-        else 
-            set_hdr(false)
-        end
-    else
-        local colormatrix = mp.get_property("colormatrix")
-        if colormatrix == nil then
-            do return end
-        end
-
-        if colormatrix:match("bt.2020-ncl") or colormatrix:match("dolbyvision") then
-            set_hdr(true)
-        else 
-            set_hdr(false)
-        end
+    local colormatrix = mp.get_property("colormatrix")
+    if colormatrix == nil then
+        do return end
     end
 
-    mp.command("seek -" .. options.rewind_secs .. " relative+exact")
+    if colormatrix:match("bt.2020") ~= nil or colormatrix:match("dolby") ~= nil then
+        applied_hdr = set_hdr(true)
+    else 
+        applied_hdr = set_hdr(false)
+    end
+
+    if applied_hdr then
+        mp.command("seek -" .. options.rewind_secs .. " relative+exact")
+    end
 end
 
 local function restore_hdr()
@@ -130,6 +101,10 @@ local function end_file(bind)
         restore_hdr()
     end
 end
+
+mp.add_periodic_timer(1, apply_hdr)
+
+--mp.register_event('start-file', apply_hdr)
 
 -- restore HDR on mpv shutdown
 mp.register_event("shutdown", restore_hdr)

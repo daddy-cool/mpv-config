@@ -11,6 +11,12 @@ local function isEnabled()
     return options.enabled
 end
 
+local function select_subtitles() 
+  mp.set_property("aid", "auto")
+  mp.set_property("sid", "auto")
+  mp.commandv('script-message-to', 'sub_select', 'select-subtitles')
+end
+
 local function jellyfin()
   if isEnabled() == false then
     do return end
@@ -31,6 +37,26 @@ local function jellyfin()
   mp.command("keybind left 'seek -5 relative+exact'")
   mp.command("keybind up 'add volume 5'")
   mp.command("keybind down 'add volume -5'")
+
+  
+
+  mp.add_timeout(1, select_subtitles)
 end
 
-mp.add_hook("on_load", 50, jellyfin)
+mp.register_event("file-loaded", jellyfin)
+
+local last_mouse_pos = ""
+local function cursor_workaround()
+  if isEnabled() == false then
+    do return end
+  end
+
+  if last_mouse_pos ~= mp.get_property('mouse-pos') then
+    last_mouse_pos = mp.get_property('mouse-pos')
+    mp.set_property("cursor-autohide", "1000")
+  else  
+    mp.set_property("cursor-autohide", "always")
+  end
+end
+
+mp.add_periodic_timer(1, cursor_workaround)

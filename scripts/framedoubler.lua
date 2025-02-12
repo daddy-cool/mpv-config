@@ -12,8 +12,7 @@ local options = {
   maxVsyncRatio = 20,
   minDisplayFps = 71,
   roundDispayFps = true,
-  roundFps = false,
-  vfAppend = ""
+  roundFps = false
 }
 
 local function isEnabled()
@@ -22,16 +21,12 @@ local function isEnabled()
 end
 
 local function reset()
-  mp.set_property("vf", options.vfAppend) -- reset
+  mp.set_property("vf", "") -- reset
 end
 
 function sync_frames()
   if isEnabled() == false then
     do return end
-  end
-
-  if options.vfAppend == "" then
-    options.vfAppend = mp.get_property("vf")
   end
 
   local containerFps = mp.get_property_number('container-fps')
@@ -77,13 +72,8 @@ function sync_frames()
     do return end
   end
 
-  local seperator = ""
-  if options.vfAppend ~= "" then
-    seperator = ","
-  end
-
   mp.set_property("msg-level", "ffmpeg=error")
-  mp.set_property("vf", "fps=fps=source_fps*" .. vsyncRatio .. seperator .. options.vfAppend)
+  mp.set_property("vf", "fps=fps=source_fps*" .. vsyncRatio)
 end
 
 mp.observe_property('container-fps', 'number', sync_frames)
