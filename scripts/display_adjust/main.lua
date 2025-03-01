@@ -1,50 +1,12 @@
---[[
-    This script uses nircmd to change the refresh rate of the display that the mpv window is currently open in
-    This was written because I could not get autospeedwin to work :(
-
-    The script uses a hotkey by default, but can be setup to run on startup, see the options below for more details
-
-    If the display does not support the specified resolution or refresh rate it will silently fail
-    If the video refresh rate does not match any on the whitelist it will pick the next highest.
-    If the video fps is higher than any on the whitelist it will pick the highest available
-    The whitelist is specified via the script-opt 'rates'. Valid rates are separated via semicolons, do not include spaces and list in asceding order.
-        Example:    script-opts=changerefresh-rates="23;24;30;60"
-
-    You can also set a custom display rate for individual video rates using a hyphen:
-        Example:    script-opts=changerefresh-rates="23;24;25-50;30;60"
-    This will change the display to 23, 24, and 30 fps when playing videos in those same rates, but will change the display to 50 fps when
-    playing videos in 25 Hz
-
-    The script will keep track of the original refresh rate of the monitor and revert when either the
-    correct keybind is pressed, or when mpv exits. The original rate needs to be included on the whitelist and follows
-    custom rate rules (i.e. if the monitor was originally 25Hz and the whitelist contains "25-50", then it will revert to 50)
-
-    The keybind to switch refresh rates is f10 by default, but this can be changed by setting different script bindings in input.conf. All of the valid keybinds,
-    their names, and their defaults are at the bottom of this script file
-
-    You can also send refresh change commands directly using script messages:
-        script-message change-refresh [rate] [display]
-
-    Display stands for the display number (starting from 0) which is printed to the console when the display is changed.
-    Leaving out this argument will auto-detect the currently used monitor, like the usual behaviour.
-
-    These script messages completely bypass the whitelist and rate associations and are sent to nircmd directly, so make sure you send a valid integer.
-    They are also completely independant from the usual automatic reversion system, so you'll have to handle that yourself.
-
-    Note that if the mpv window is lying across multiple displays it may not save the original refresh rate of the correct display
-
-    See below for the full options list, don't change the defaults manually, use script opts.
-]]--
-
 msg = require 'mp.msg'
 utils = require 'mp.utils'
 require 'mp.options'
 
---options available through --script-opts=changerefresh-[option]=value
 --all of these options can be changed at runtime using profiles, the script will automatically update
 local options = {
     --the location of nircmd.exe, tries to use the system path by default
     nircmd = mp.get_script_directory() .. "/nircmd.exe",
+    hdrcmd = mp.get_script_directory() .. "/HDRCmd.exe",
 
     --list of valid refresh rates, separated by semicolon, listed in ascending order
     --by adding a hyphen after a number you can set a custom display rate for that specific video rate:
@@ -58,7 +20,10 @@ local options = {
     valid_resolutions_h = "",
 
     --change refresh automatically on startup
-    auto = false,
+    rate = false,
+    hdr = false,
+
+    hdr_default = false,
 
     --colour bit depth to send to nircmd
     --you shouldn't need to change this, but it's here just in case
@@ -79,15 +44,14 @@ local options = {
 
     --set whether to output status messages to the osd
     osd_output = true,
-
-    -- by how much to rewind playback to accomodate delays in changing the refresh rate
-    rewind_secs = 5
 }
 
 local var = {
     --saved as strings
     dname = "",
     dnumber = "",
+
+    paused = false,
 
     --saved as numbers
     new_fps = 0,
@@ -109,7 +73,7 @@ function updateOptions(changes)
         updateTable()
     end
 end
-read_options(options, 'changerefresh', updateOptions)
+read_options(options, 'display_adjust', updateOptions)
 
 --checks if the rates string contains any invalid characters
 function checkRatesString()
@@ -287,29 +251,60 @@ function findValidRate(rate)
     return closestRate
 end
 
---executes commands to switch monior to video refreshrate
-function matchVideo()    
-    if options.auto == false then
-        do return end
+local function set_hdr(enabled)
+    local process = mp.command_native({
+        name = 'subprocess',
+        playback_only = false,
+        args = {
+            options.hdrcmd,
+            "status"
+        },
+        capture_stdout = true
+    })
+
+    if process.status < 0 then
+        msg.error('Error reading HDR status')
+        return false
     end
-    
+
+    local hdr_enabled = process.stdout:match("HDR is on") ~= nil
+
+    if hdr_enabled == enabled then
+        return false
+    end
+
+    local command = enabled and "on" or "off"
+
+    local process = mp.command_native({
+        name = 'subprocess',
+        playback_only = false,
+        args = {
+            options.hdrcmd,
+            command
+        }
+    })
+
+    return true
+end
+
+local function apply_rate()
     local old_rate = mp.get_property('display-fps')
     if old_rate == nil then
-        do return end
+        do return false end
     end
 
     --gets display details
     local dname, dnumber = getDisplayDetails()
 
     if dname == "" then
-        do return end
+        do return false end
     end
 
     --if the change is executed on a different monitor to the previous, and the previous monitor has not been been reverted
     --then revert the previous changes before changing the new monitor
     if var.dname ~= dname then
         msg.verbose('changing new display, reverting old one first')
-        revertRefresh()
+        revert()
     end
     
     --saves the current name and number for next time
@@ -319,14 +314,14 @@ function matchVideo()
     local new_fps = nil
 
     --saves either the estimated or specified fps of the video
-    if (options.estimated_fps == true) then
+    if (options.estimated_fps ~= false) then
         new_fps = mp.get_property_number('estimated-vf-fps', 0)
     else
         new_fps = mp.get_property_number('container-fps', 0)
     end
 
     if new_fps == nil or new_fps < 23 then
-        do return end
+        do return false end
     end
     
     --Floor is used because 23fps video has an actual framerate of ~23.9, this occurs across many video rates
@@ -334,23 +329,80 @@ function matchVideo()
 
     --picks which whitelisted rate to switch the monitor to based on the video rate
     new_fps = findValidRate(new_fps)
-
     
     if  math.floor(old_rate) ~= math.floor(new_fps) then
         changeRefresh(new_fps, dnumber)
-        mp.command("seek -" .. options.rewind_secs .. " relative+exact")
+        mp.set_property("pause", "yes")
+        do return true end
+    end
+    
+    return false
+end
+
+local function apply_hdr()
+    if options.hdr ~= true then
+        do return false end
+    end
+
+    local applied_hdr = false
+
+    local gamma = mp.get_property("video-params/gamma")
+    if gamma == nil then
+        do return false end
+    end
+
+    if gamma:match("pq") ~= nil then
+        applied_hdr = set_hdr(true)
+    else 
+        applied_hdr = set_hdr(false)
+    end
+
+    if applied_hdr then
+        mp.set_property("pause", "yes")
+        do return true end
+    end
+
+    return false
+end
+
+function matchVideo()
+    paused = false
+    if options.rate ~= false then
+        if apply_rate() ~= false then
+            paused = true
+        end
+    end
+
+    if options.hdr ~= false then
+        if apply_hdr() ~= false then
+            paused = true
+        end
+    end
+
+    if paused ~= false then
+        if var.paused ~= true then
+            var.paused=true
+            mp.set_property("pause", "yes")
+        end
+    else
+        if var.paused ~= false then
+            var.paused=false
+            mp.set_property("pause", "no")
+        end
     end
 end
 
 --reverts the monitor to its original refresh rate
-function revertRefresh()
-    if options.auto == false then
-        do return end
+function revert()
+    if options.rate ~= false then
+        if options.original_rate ~= 0 then
+            msg.verbose("reverting refresh rate")
+            changeRefresh(options.original_rate, var.dnumber)
+        end
     end
 
-    if options.original_rate ~= 0 then
-        msg.verbose("reverting refresh rate")
-        changeRefresh(options.original_rate, var.dnumber)
+    if options.hdr ~= false then
+        set_hdr(options.hdr_default)
     end
 end
 
@@ -385,36 +437,27 @@ end
 
 local function disable()
     mp.unregister_event(matchVideo)
-    mp.unregister_event(revertRefresh)
+    mp.unregister_event(revert)
     mp.unregister_event(toggleFpsType)
     mp.unregister_event(scriptMessage)
-    mp.unregister_event(autoChange)
-    mp.unregister_event(revertRefresh)
     mp.unregister_event(disable)
 end
 
 local function end_file(bind)
     if bind == "bind1" then
-        revertRefresh()
+        revert()
     end
 end
 
 updateOptions()
 
---sends a command to switch to the specified display rate
---syntax is: script-message change-refresh [rate] [display]
-mp.register_script_message("change-refresh", scriptMessage)
-
 mp.add_periodic_timer(1, matchVideo)
 
 --reverts refresh on mpv shutdown
-mp.register_event("shutdown", revertRefresh)
+mp.register_event("shutdown", revert)
 
 --disables this script
 mp.register_script_message("disable", disable)
 
--- restore refresh rate on jellyfin-mpv-shim keybind
+-- restore on jellyfin-mpv-shim keybind
 mp.register_script_message("custom-bind", end_file)
-
--- -- adjust options
--- mp.observe_property("script-opts", "string", read_options)
