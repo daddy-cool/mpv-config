@@ -7,6 +7,7 @@ local options = {
     --the location of nircmd.exe, tries to use the system path by default
     nircmd = mp.get_script_directory() .. "/nircmd.exe",
     hdrcmd = mp.get_script_directory() .. "/HDRCmd.exe",
+    gsynctoggle = mp.get_script_directory() .. "/gsynctoggle.exe",
 
     --list of valid refresh rates, separated by semicolon, listed in ascending order
     --by adding a hyphen after a number you can set a custom display rate for that specific video rate:
@@ -22,8 +23,10 @@ local options = {
     --change refresh automatically on startup
     rate = false,
     hdr = false,
+    gsync = false,
 
     hdr_default = false,
+    gsync_default = true,
 
     --colour bit depth to send to nircmd
     --you shouldn't need to change this, but it's here just in case
@@ -287,6 +290,42 @@ local function set_hdr(enabled)
     return true
 end
 
+local function set_gsync(enabled)
+    local process = mp.command_native({
+        name = 'subprocess',
+        playback_only = false,
+        args = {
+            options.gsynctoggle,
+            "status"
+        },
+        capture_stdout = true
+    })
+
+    if process.status < 0 then
+        msg.error('Error reading G-Sync status')
+        return false
+    end
+
+    local gsync_enabled = process.stdout:match("0") == nil
+
+    if gsync_enabled == enabled then
+        return false
+    end
+
+    local command = enabled and "1" or "0"
+
+    local process = mp.command_native({
+        name = 'subprocess',
+        playback_only = false,
+        args = {
+            options.gsynctoggle,
+            command
+        }
+    })
+
+    return true
+end
+
 local function apply_rate()
     local old_rate = mp.get_property('display-fps')
     if old_rate == nil then
@@ -365,6 +404,28 @@ local function apply_hdr()
     return false
 end
 
+local function apply_gsync()
+    if options.gsync ~= true then
+        do return false end
+    end
+
+    local applied_gsync = false
+    
+
+    if mp.get_property_number('container-fps', 0) > 20 then
+        applied_gsync = set_gsync(false)
+    else 
+        applied_gsync = set_gsync(true)
+    end
+
+    if applied_gsync then
+        mp.set_property("pause", "yes")
+        do return true end
+    end
+
+    return false
+end
+
 function matchVideo()
     paused = false
     if options.rate ~= false then
@@ -375,6 +436,12 @@ function matchVideo()
 
     if options.hdr ~= false then
         if apply_hdr() ~= false then
+            paused = true
+        end
+    end
+
+    if options.gsync ~= false then
+        if apply_gsync() ~= false then
             paused = true
         end
     end
@@ -403,6 +470,10 @@ function revert()
 
     if options.hdr ~= false then
         set_hdr(options.hdr_default)
+    end
+
+    if options.gsync ~= false then
+        set_gsync(options.gsync_default)
     end
 end
 
