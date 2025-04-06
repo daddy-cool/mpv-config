@@ -7,7 +7,7 @@ local options = {
 }
 
 local function isEnabled()
-    read_options(options, "jellyfin")
+    read_options(options, "shim")
     return options.enabled
 end
 
@@ -17,22 +17,22 @@ local function select_subtitles()
   mp.commandv('script-message-to', 'sub_select', 'select-subtitles')
 end
 
-local function jellyfin()
+local function shim()
   if isEnabled() == false then
     do return end
   end
 
-  -- jellyfin mpv shim compatiblity keybinds
+  -- mpv shim compatiblity keybinds
   mp.command("keybind esc 'script-message custom-bind bind1'")
   mp.command("keybind alt+left 'script-message custom-bind bind4'")
   mp.command("keybind alt+right 'script-message custom-bind bind5'")
   
-  -- jellyfin mpv shim compatiblity for uosc
+  -- mpv shim compatiblity for uosc
   mp.commandv('script-message-to', 'uosc', 'overwrite-binding', 'prev', 'script-message custom-bind bind4')
   mp.commandv('script-message-to', 'uosc', 'overwrite-binding', 'next', 'script-message custom-bind bind5')
   mp.commandv('script-message-to', 'uosc', 'disable-elements', mp.get_script_name(), 'top_bar')
 
-  -- jellyfin mpv shim overwrites some keybinds fix
+  -- mpv shim overwrites some keybinds fix
   mp.command("keybind right 'seek 5 relative+exact'")
   mp.command("keybind left 'seek -5 relative+exact'")
   mp.command("keybind up 'add volume 5'")
@@ -43,7 +43,7 @@ local function jellyfin()
   mp.add_timeout(1, select_subtitles)
 end
 
-mp.register_event("file-loaded", jellyfin)
+mp.register_event("file-loaded", shim)
 
 local last_mouse_pos = ""
 local function cursor_workaround()
