@@ -426,7 +426,19 @@ local function apply_gsync()
     return false
 end
 
+local prepare_revert = 0
+
 function matchVideo()
+    if mp.get_property_number('container-fps', 0) == 0 then
+        if prepare_revert > 5 then
+            prepare_revert = 0
+            revert()
+        else
+            prepare_revert = prepare_revert + 1
+        end
+        do return end
+    end
+
     paused = false
     if options.rate ~= false then
         if apply_rate() ~= false then
