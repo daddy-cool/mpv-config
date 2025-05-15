@@ -55,6 +55,7 @@ local var = {
     dnumber = "",
 
     paused = false,
+    reverted = false,
 
     --saved as numbers
     new_fps = 0,
@@ -442,18 +443,21 @@ function matchVideo()
     paused = false
     if options.rate ~= false then
         if apply_rate() ~= false then
+            var.reverted = false
             paused = true
         end
     end
 
     if options.hdr ~= false then
         if apply_hdr() ~= false then
+            var.reverted = false
             paused = true
         end
     end
 
     if options.gsync ~= false then
         if apply_gsync() ~= false then
+            var.reverted = false
             paused = true
         end
     end
@@ -473,6 +477,11 @@ end
 
 --reverts the monitor to its original refresh rate
 function revert()
+    if var.reverted then
+        do return end
+    end
+    var.reverted = true
+
     if options.rate ~= false then
         if options.original_rate ~= 0 then
             msg.verbose("reverting refresh rate")

@@ -33,8 +33,8 @@ local function shim()
   mp.commandv('script-message-to', 'uosc', 'disable-elements', mp.get_script_name(), 'top_bar')
 
   -- mpv shim overwrites some keybinds fix
-  mp.command("keybind right 'seek 5 relative+exact'")
-  mp.command("keybind left 'seek -5 relative+exact'")
+  -- mp.command("keybind right 'seek 5 relative+exact'")
+  -- mp.command("keybind left 'seek -5 relative+exact'")
   mp.command("keybind up 'add volume 5'")
   mp.command("keybind down 'add volume -5'")
 
