@@ -68,9 +68,9 @@ function subprocess(args, async, callback)
 
     if not pre_0_30_0 then
         if async then
-            return mp.command_native_async({name = "subprocess", playback_only = true, args = args}, callback)
+            return mp.command_native_async({name = "subprocess", playback_only = true, args = args, env = "PATH="..os.getenv("PATH")}, callback)
         else
-            return mp.command_native({name = "subprocess", playback_only = false, capture_stdout = true, args = args})
+            return mp.command_native({name = "subprocess", playback_only = false, capture_stdout = true, args = args, env = "PATH="..os.getenv("PATH")})
         end
     else
         if async then
@@ -350,11 +350,11 @@ local function vf_string(filters, full)
             local tone_mapping = options.tone_mapping
             if tone_mapping == "auto" then
                 tone_mapping = last_tone_mapping or properties["tone-mapping"]
-                if tone_mapping == "auto" and properties["current-vo"] == "gpu-next" then        
+                if tone_mapping == "auto" and properties["current-vo"] == "gpu-next" then
                     tone_mapping = vo_tone_mapping()
                 end
             end
-            if not tone_mappings[tone_mapping] then        
+            if not tone_mappings[tone_mapping] then
                 tone_mapping = "hable"
             end
             last_tone_mapping = tone_mapping
@@ -917,10 +917,6 @@ local function on_duration(prop, val)
     allow_fast_seek = (val or 30) >= 30
 end
 
-local function update_options()
-    mp.options.read_options(options, "thumbfast")
-end
-
 mp.observe_property("current-tracks/video", "native", function(name, value)
     if pre_0_33_0 then
         mp.unobserve_property(update_tracklist)
@@ -945,7 +941,6 @@ mp.observe_property("path", "native", update_property)
 mp.observe_property("vid", "native", sync_changes)
 mp.observe_property("edition", "native", sync_changes)
 mp.observe_property("duration", "native", on_duration)
-mp.observe_property("script-opts", "string", update_options)
 
 mp.register_script_message("thumb", thumb)
 mp.register_script_message("clear", clear)
